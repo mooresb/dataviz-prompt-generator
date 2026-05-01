@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Viz & Dashboard Prompt Generator</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #f0efe9;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.2);
+    --text: #1a1a1a;
+    --text2: #555;
+    --text3: #888;
+    --blue-bg: #e6f1fb;
+    --blue-text: #0c447c;
+    --blue-mid: #185fa5;
+    --green-bg: #eaf3de;
+    --green-text: #27500a;
+    --amber-bg: #faeeda;
+    --amber-text: #633806;
+    --amber-mid: #ba7517;
+    --info-bg: #e6f1fb;
+    --info-text: #0c447c;
+    --success-bg: #eaf3de;
+    --success-text: #27500a;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; }
+
+  .app-header {
+    background: var(--text);
+    color: #fff;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-header h1 { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
+  .app-header span { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+  .container { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  .steps { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .step-btn {
+    padding: 5px 12px; font-size: 12px; border-radius: var(--radius);
+    border: 0.5px solid var(--border2); background: transparent;
+    color: var(--text2); cursor: pointer; transition: all 0.12s; font-family: var(--font);
+  }
+  .step-btn:hover { background: var(--bg2); }
+  .step-btn.active { background: var(--blue-mid); color: #fff; border-color: transparent; font-weight: 500; }
+  .step-btn.done { background: var(--green-bg); color: var(--green-text); border-color: transparent; }
+
+  .progress { display: flex; gap: 3px; margin-bottom: 1.5rem; }
+  .prog-seg { height: 3px; flex: 1; border-radius: 2px; background: var(--border); transition: background 0.2s; }
+  .prog-seg.active { background: var(--blue-mid); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .scard {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .scard h3 {
+    font-size: 14px; font-weight: 500; color: var(--text);
+    margin-bottom: 1rem; padding-bottom: 8px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .field { margin-bottom: 1.1rem; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
+  .hint { font-size: 12px; color: var(--text2); margin-bottom: 6px; line-height: 1.5; }
+
+  select, input, textarea {
+    width: 100%; font-size: 13px; padding: 8px 10px;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg); color: var(--text); font-family: var(--font);
+    transition: border-color 0.12s;
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: none; border-color: var(--blue-mid);
+    box-shadow: 0 0 0 2px rgba(24,95,165,0.15);
+  }
+  textarea { resize: vertical; min-height: 58px; line-height: 1.5; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+
+  .divider {
+    font-size: 11px; font-weight: 500; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin: 1rem 0 0.5rem; padding-bottom: 4px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+  .chip {
+    padding: 5px 11px; font-size: 12px; border-radius: 20px;
+    border: 0.5px solid var(--border2); background: transparent;
+    color: var(--text2); cursor: pointer; user-select: none;
+    transition: all 0.12s; font-family: var(--font);
+  }
+  .chip:hover { background: var(--bg2); }
+  .chip.on { background: var(--blue-bg); color: var(--blue-text); border-color: transparent; }
+  .chip.inc { background: var(--blue-bg); color: var(--blue-text); border-color: transparent; }
+  .chip.later { background: var(--amber-bg); color: var(--amber-text); border-color: transparent; }
+  .chip.a11y-on { background: var(--amber-bg); color: var(--amber-text); border-color: transparent; }
+
+  .chip-legend { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .chip-legend span { font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 4px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-inc { background: var(--blue-mid); }
+  .dot-later { background: var(--amber-mid); }
+  .dot-off { background: var(--border2); }
+
+  .info-box { background: var(--info-bg); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 1rem; }
+  .info-box p { font-size: 12px; color: var(--info-text); line-height: 1.6; }
+  .tip { background: var(--success-bg); border-radius: var(--radius); padding: 9px 13px; margin-top: 6px; }
+  .tip p { font-size: 12px; color: var(--success-text); line-height: 1.6; }
+
+  .nav { display: flex; gap: 8px; margin-top: 1.5rem; justify-content: space-between; align-items: center; }
+
+  button {
+    padding: 7px 16px; font-size: 13px; border-radius: var(--radius);
+    border: 0.5px solid var(--border2); background: transparent;
+    color: var(--text); cursor: pointer; font-family: var(--font);
+    transition: all 0.12s;
+  }
+  button:hover { background: var(--bg2); }
+  button:active { transform: scale(0.98); }
+  .btn-primary { background: var(--blue-mid); color: #fff; border-color: transparent; }
+  .btn-primary:hover { background: #0f4e8a; }
+
+  .output-box {
+    background: var(--bg2); border-radius: var(--radius);
+    padding: 1rem; font-size: 13px; color: var(--text);
+    line-height: 1.8; white-space: pre-wrap;
+    border-left: 3px solid var(--blue-mid); min-height: 160px;
+    font-family: var(--font);
+  }
+  .out-label { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+
+  .page-card {
+    background: var(--bg2); border-radius: var(--radius);
+    border: 0.5px solid var(--border); padding: 12px; margin-bottom: 8px;
+  }
+  .page-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .page-num { font-size: 12px; font-weight: 500; color: var(--text); }
+  .remove-btn {
+    font-size: 11px; color: var(--text3); background: none;
+    border: none; cursor: pointer; padding: 2px 8px; border-radius: 4px; font-family: var(--font);
+  }
+  .remove-btn:hover { background: #fde8e8; color: #a32d2d; }
+
+  .add-page-btn {
+    font-size: 12px; padding: 8px 14px;
+    border: 0.5px dashed var(--border2); border-radius: var(--radius);
+    background: transparent; color: var(--text2); cursor: pointer;
+    width: 100%; margin-top: 4px; font-family: var(--font); transition: all 0.12s;
+  }
+  .add-page-btn:hover:not(:disabled) { background: var(--bg2); color: var(--text); }
+  .add-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .copy-note { font-size: 11px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .style-ref {
+    font-size: 11px; color: var(--blue-mid); cursor: pointer;
+    margin-left: 6px; text-decoration: underline; background: none;
+    border: none; padding: 0; font-family: var(--font);
+  }
+  .tooltip-box {
+    display: none; position: absolute; left: 0; top: 100%; margin-top: 4px;
+    background: var(--bg); border: 0.5px solid var(--border2);
+    border-radius: var(--radius); padding: 10px 12px;
+    font-size: 12px; color: var(--text2); line-height: 1.6; width: 260px; z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .tooltip-wrap:hover .tooltip-box, .tooltip-wrap:focus-within .tooltip-box { display: block; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+
+  .tag-subtle {
+    display: inline-block; font-size: 11px; padding: 2px 7px;
+    border-radius: 4px; background: var(--bg2); color: var(--text3);
+    border: 0.5px solid var(--border); margin-left: 4px; font-weight: 400;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Data Viz & Dashboard — AI Prompt Generator</h1>
+  <span>v1.0 — paste output into Claude, ChatGPT, or any AI tool</span>
+</div>
+
+<div class="container">
+
+<div class="steps" id="stepBtns">
+  <button class="step-btn active" onclick="goStep(0)">1. Deliverable</button>
+  <button class="step-btn" onclick="goStep(1)">2. Context</button>
+  <button class="step-btn" onclick="goStep(2)">3. Features</button>
+  <button class="step-btn" onclick="goStep(3)">4. Design</button>
+  <button class="step-btn" onclick="goStep(4)">5. Pages</button>
+  <button class="step-btn" onclick="goStep(5)">6. Audience</button>
+  <button class="step-btn" onclick="goStep(6)">7. Brand</button>
+  <button class="step-btn" onclick="goStep(7)">8. Generate</button>
+</div>
+<div class="progress" id="progBar">
+  <div class="prog-seg" id="p0"></div><div class="prog-seg" id="p1"></div>
+  <div class="prog-seg" id="p2"></div><div class="prog-seg" id="p3"></div>
+  <div class="prog-seg" id="p4"></div><div class="prog-seg" id="p5"></div>
+  <div class="prog-seg" id="p6"></div><div class="prog-seg" id="p7"></div>
+</div>
+
+<!-- STEP 0: Deliverable -->
+<div class="panel active" id="panel0">
+  <div class="scard">
+    <h3>What are you building?</h3>
+    <div class="field">
+      <label>Deliverable type</label>
+      <select id="tplType" onchange="onTplChange()">
+        <option value="">— select —</option>
+        <optgroup label="Planning & Discovery">
+          <option value="wireframe">Wireframe — low-fidelity layout sketch</option>
+          <option value="mockup">Dashboard mockup — high-fidelity visual concept</option>
+          <option value="prototype">Interactive prototype — clickable flow</option>
+        </optgroup>
+        <optgroup label="Full Builds">
+          <option value="reporting_pkg">Full reporting package — landing + nav + report pages</option>
+          <option value="dashboard_new">New dashboard — full build from scratch</option>
+          <option value="data_story">Data story / narrative report</option>
+          <option value="exec_pres">Executive presentation</option>
+        </optgroup>
+        <optgroup label="Updates & Improvements">
+          <option value="rebuild">Dashboard rebuild — redesign of existing</option>
+          <option value="update">Dashboard update — specific changes to existing</option>
+          <option value="refine">Design refinement — improve visual quality</option>
+        </optgroup>
+        <optgroup label="Design System">
+          <option value="style_guide">Style guide</option>
+          <option value="component_lib">Component library</option>
+          <option value="template">Reusable report template</option>
+        </optgroup>
+      </select>
+    </div>
+    <div id="tplHint" style="display:none" class="info-box"><p id="tplHintTxt"></p></div>
+
+    <div class="field">
+      <label>Tool / platform <span class="tag-subtle">select all that apply</span></label>
+      <div class="chip-group" id="toolChips">
+        <span class="chip" onclick="togSimple(this)">Power BI (desktop)</span>
+        <span class="chip" onclick="togSimple(this)">Power BI (mobile)</span>
+        <span class="chip" onclick="togSimple(this)">Tableau Desktop</span>
+        <span class="chip" onclick="togSimple(this)">Tableau Public</span>
+        <span class="chip" onclick="togSimple(this)">Tableau Mobile</span>
+        <span class="chip" onclick="togSimple(this)">Looker / Looker Studio</span>
+        <span class="chip" onclick="togSimple(this)">Qlik Sense</span>
+        <span class="chip" onclick="togSimple(this)">Domo</span>
+        <span class="chip" onclick="togSimple(this)">Sisense</span>
+        <span class="chip" onclick="togSimple(this)">ThoughtSpot</span>
+        <span class="chip" onclick="togSimple(this)">PowerPoint</span>
+        <span class="chip" onclick="togSimple(this)">Google Slides</span>
+        <span class="chip" onclick="togSimple(this)">Figma</span>
+        <span class="chip" onclick="togSimple(this)">React + Tailwind</span>
+        <span class="chip" onclick="togSimple(this)">HTML + CSS</span>
+        <span class="chip" onclick="togSimple(this)">Excel</span>
+        <span class="chip" onclick="togSimple(this)">Google Sheets</span>
+        <span class="chip" onclick="togSimple(this)">SharePoint</span>
+        <span class="chip" onclick="togSimple(this)">Embedded web widget</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Delivery size / canvas</label>
+      <div class="hint">The intended viewing format — determines orientation and dimensions.</div>
+      <select id="deliverySize">
+        <option value="">— select —</option>
+        <optgroup label="Screen / Digital">
+          <option value="desktop">Desktop — 1920×1080px (landscape)</option>
+          <option value="desktop_sm">Desktop small — 1366×768px (landscape)</option>
+          <option value="tablet_land">Tablet landscape — 1024×768px</option>
+          <option value="tablet_port">Tablet portrait — 768×1024px (vertical)</option>
+          <option value="mobile">Mobile — 390×844px (portrait)</option>
+          <option value="mobile_land">Mobile landscape — 844×390px</option>
+          <option value="embed">Embedded widget — 600×400px</option>
+        </optgroup>
+        <optgroup label="Presentation">
+          <option value="ppt_wide">PowerPoint widescreen — 1920×1080 / 16:9</option>
+          <option value="ppt_std">PowerPoint standard — 1024×768 / 4:3</option>
+          <option value="google_slides">Google Slides — 1920×1080 / 16:9</option>
+        </optgroup>
+        <optgroup label="Print / Document">
+          <option value="letter_land">Letter landscape — 11×8.5in (horizontal)</option>
+          <option value="letter_port">Letter portrait — 8.5×11in (vertical)</option>
+          <option value="a4_land">A4 landscape — 297×210mm (horizontal)</option>
+          <option value="a4_port">A4 portrait — 210×297mm (vertical)</option>
+          <option value="tabloid">Tabloid — 17×11in (landscape, large format)</option>
+        </optgroup>
+        <optgroup label="Social / Marketing">
+          <option value="infographic_v">Infographic vertical — 800×2000px (tall scroll)</option>
+          <option value="infographic_h">Infographic horizontal — 1800×900px (wide)</option>
+          <option value="social_sq">Social square — 1080×1080px</option>
+          <option value="social_story">Social story — 1080×1920px (vertical)</option>
+        </optgroup>
+      </select>
+    </div>
+  </div>
+  <div class="nav"><span></span><button class="btn-primary" onclick="next()">Next →</button></div>
+</div>
+
+<!-- STEP 1: Context -->
+<div class="panel" id="panel1">
+  <div class="scard">
+    <h3>Context</h3>
+    <div class="row2">
+      <div class="field">
+        <label>Industry / domain</label>
+        <select id="industry">
+          <option value="">— optional —</option>
+          <optgroup label="Tech"><option>SaaS / B2B software</option><option>Developer tools</option><option>AI / ML platform</option><option>Cybersecurity</option></optgroup>
+          <optgroup label="Finance"><option>Fintech / payments</option><option>Banking / insurance</option><option>Personal finance</option><option>Investment / trading</option></optgroup>
+          <optgroup label="Healthcare"><option>Medical / clinical</option><option>Mental health</option><option>Wellness / fitness</option><option>Pharmacy / biotech</option></optgroup>
+          <optgroup label="Commerce"><option>E-commerce / retail</option><option>Marketplace</option><option>Food & beverage</option><option>Luxury / fashion</option></optgroup>
+          <optgroup label="Other"><option>Education / EdTech</option><option>Government / public sector</option><option>Nonprofit</option><option>Media / publishing</option><option>Real estate</option><option>HR / workforce</option><option>Supply chain / logistics</option><option>Energy / sustainability</option></optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Primary end user</label>
+        <select id="endUser">
+          <option value="">— optional —</option>
+          <option>Executive / C-suite</option><option>Manager / team lead</option>
+          <option>Analyst / power user</option><option>Frontline / operations staff</option>
+          <option>Customer / consumer (B2C)</option><option>Developer / technical user</option>
+          <option>General public</option><option>Field worker / mobile-first</option>
+          <option>Student</option><option>Patient / healthcare recipient</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Secondary audience <span class="tag-subtle">optional</span></label>
+      <select id="secondaryAudience">
+        <option value="">— none —</option>
+        <option>Executive / C-suite</option><option>Manager / team lead</option>
+        <option>Analyst / power user</option><option>Frontline / operations staff</option>
+        <option>Customer / consumer (B2C)</option><option>Developer / technical user</option>
+        <option>General public</option><option>Field worker / mobile-first</option>
+        <option>Student</option><option>Patient / healthcare recipient</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>What problem does this solve?</label>
+      <div class="hint">What pain point, gap, or need is this addressing?</div>
+      <textarea id="problem" placeholder="e.g. Regional managers have no single view of quota attainment — they're manually pulling from 3 spreadsheets each week..."></textarea>
+    </div>
+    <div class="field">
+      <label>Who uses it and how?</label>
+      <div class="hint">How often, in what context, on what device, alongside what workflow?</div>
+      <textarea id="whoHow" placeholder="e.g. Used weekly in Monday stand-ups on a 27-inch monitor. Managers scan KPIs in under 2 minutes then drill into underperforming reps..."></textarea>
+    </div>
+    <div class="field">
+      <label>What decisions should it help someone make?</label>
+      <div class="hint">What action should a user take after viewing this?</div>
+      <textarea id="decisions" placeholder="e.g. Identify regions at risk of missing quarterly targets and decide where to reallocate resources..."></textarea>
+    </div>
+  </div>
+  <div class="nav"><button onclick="prev()">← Back</button><button class="btn-primary" onclick="next()">Next →</button></div>
+</div>
+
+<!-- STEP 2: Features -->
+<div class="panel" id="panel2">
+  <div class="scard">
+    <h3>Dashboard features</h3>
+    <div class="chip-legend">
+      <span><span class="dot dot-inc"></span> Include now</span>
+      <span><span class="dot dot-later"></span> Maybe later</span>
+      <span><span class="dot dot-off"></span> Not needed</span>
+    </div>
+    <p class="hint" style="margin-bottom:10px">Click once to include, again for "maybe later", again to remove.</p>
+
+    <div class="divider">Structural elements</div>
+    <div class="chip-group" id="structChips">
+      <span class="chip" onclick="togPhase(this)">Header / title bar</span>
+      <span class="chip" onclick="togPhase(this)">Navigation panel</span>
+      <span class="chip" onclick="togPhase(this)">Logo / icon area</span>
+      <span class="chip" onclick="togPhase(this)">Footer</span>
+      <span class="chip" onclick="togPhase(this)">Page tabs</span>
+      <span class="chip" onclick="togPhase(this)">Breadcrumbs</span>
+      <span class="chip" onclick="togPhase(this)">Section dividers</span>
+      <span class="chip" onclick="togPhase(this)">Help / info panel</span>
+      <span class="chip" onclick="togPhase(this)">Last refreshed timestamp</span>
+    </div>
+
+    <div class="divider">Interactive elements</div>
+    <div class="chip-group" id="interactChips">
+      <span class="chip" onclick="togPhase(this)">Filter panel</span>
+      <span class="chip" onclick="togPhase(this)">Date range picker</span>
+      <span class="chip" onclick="togPhase(this)">Slicers / dropdowns</span>
+      <span class="chip" onclick="togPhase(this)">Search bar</span>
+      <span class="chip" onclick="togPhase(this)">Drill-through pages</span>
+      <span class="chip" onclick="togPhase(this)">Tooltips</span>
+      <span class="chip" onclick="togPhase(this)">Bookmarks / saved views</span>
+      <span class="chip" onclick="togPhase(this)">Export / download button</span>
+      <span class="chip" onclick="togPhase(this)">Share / embed button</span>
+      <span class="chip" onclick="togPhase(this)">Reset filters button</span>
+      <span class="chip" onclick="togPhase(this)">Cross-filter / highlight</span>
+    </div>
+
+    <div class="field" style="margin-top:1.25rem">
+      <label>Describe where features should be placed</label>
+      <div class="hint">Think of this as your layout brief — tell the AI how to arrange these on the page.</div>
+      <textarea id="featurePlacement" placeholder="e.g. Navigation on the left sidebar (collapsed by default on mobile). Filter panel pinned to top bar. KPI cards in a row across the top of the main canvas..."></textarea>
+    </div>
+  </div>
+  <div class="nav"><button onclick="prev()">← Back</button><button class="btn-primary" onclick="next()">Next →</button></div>
+</div>
+
+<!-- STEP 3: Design Direction -->
+<div class="panel" id="panel3">
+  <div class="scard">
+    <h3>Design direction</h3>
+    <div class="row2">
+      <div class="field">
+        <label>Visual style
+          <span class="tooltip-wrap">
+            <button class="style-ref" tabindex="0">[what's this?]</button>
+            <div class="tooltip-box"><strong style="font-size:12px;color:#1a1a1a">Style reference guide</strong><br><br>Placeholder — your team's style reference doc will be linked here. Choose the name that feels closest to your vision.</div>
+          </span>
+        </label>
+        <select id="visStyle">
+          <option value="">— let AI decide —</option>
+          <optgroup label="Clean / Professional">
+            <option>Minimalism / Swiss design</option><option>Flat design</option>
+            <option>Swiss Modernism 2.0</option><option>Exaggerated minimalism</option>
+          </optgroup>
+          <optgroup label="Modern / Trendy">
+            <option>Glassmorphism</option><option>Claymorphism</option>
+            <option>Neumorphism (soft UI)</option><option>Neobrutalism</option>
+            <option>Bento Box Grid</option><option>Aurora UI</option>
+          </optgroup>
+          <optgroup label="Bold / Expressive">
+            <option>Brutalism</option><option>New Maximalism</option><option>Memphis Design</option>
+          </optgroup>
+          <optgroup label="Dark / Techy">
+            <option>Dark Mode OLED</option><option>Cyberpunk / HUD</option><option>Retro-Futurism</option>
+          </optgroup>
+          <optgroup label="Editorial">
+            <option>Editorial Grid / Magazine</option><option>Data-dense analytical</option>
+          </optgroup>
+          <optgroup label="Organic">
+            <option>Organic / Biophilic</option><option>Soft / pastel wellness</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Theme</label>
+        <select id="theme">
+          <option value="">— let AI decide —</option>
+          <option>Light theme</option><option>Dark theme</option>
+          <option>High contrast (light)</option><option>High contrast (dark)</option>
+          <option>System / auto (both)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Default layout pattern <span class="tag-subtle">applied to all pages unless overridden per page</span>
+        <span class="tooltip-wrap">
+          <button class="style-ref" tabindex="0">[what's this?]</button>
+          <div class="tooltip-box"><strong style="font-size:12px;color:#1a1a1a">Layout reference guide</strong><br><br>Placeholder — your team's layout reference doc will be linked here.</div>
+        </span>
+      </label>
+      <select id="layout">
+        <option value="">— let AI decide —</option>
+        <option>Bento grid (asymmetric card sizes)</option>
+        <option>3-column card grid</option>
+        <option>2-column card grid</option>
+        <option>Single column (mobile-first)</option>
+        <option>Hero KPI + submetrics below</option>
+        <option>Split panel (chart left, detail right)</option>
+        <option>Tab-based navigation</option>
+        <option>Left sidebar + main canvas</option>
+        <option>Top nav + full-width content</option>
+        <option>3-30-300 multi-page report</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Design inspiration — reference products</label>
+      <input type="text" id="inspiration" placeholder="e.g. Stripe Dashboard, Linear, Notion — match the spirit, not a copy">
+    </div>
+
+    <div class="field">
+      <label>Screenshot or Pinterest inspiration</label>
+      <div class="tip"><p><strong>How to use screenshots:</strong> Upload your inspiration image to Claude first, then ask it to describe the design. Paste that description here and it will be included in your prompt.</p></div>
+      <textarea id="screenshotDesc" placeholder="Paste Claude's description here, or describe what you saw: e.g. Dark navy background, teal accent, large bold KPI numbers top center, minimal grid lines, rounded cards at 12px..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Design constraints</label>
+      <textarea id="designConstraints" placeholder="e.g. No default Power BI blue. Avoid pie charts. No more than 5 visuals per page. No jargon in labels..."></textarea>
+    </div>
+  </div>
+  <div class="nav"><button onclick="prev()">← Back</button><button class="btn-primary" onclick="next()">Next →</button></div>
+</div>
+
+<!-- STEP 4: Pages -->
+<div class="panel" id="panel4">
+  <div class="scard">
+    <h3>Report pages</h3>
+    <p class="hint" style="margin-bottom:1rem">Define up to 5 pages in order. Each page gets its own type, layout, and key metrics. This tells the AI the intended flow and what lives where.</p>
+    <div id="pageList"></div>
+    <button class="add-page-btn" id="addPageBtn" onclick="addPage()">+ Add page (0/5)</button>
+  </div>
+  <div class="nav"><button onclick="prev()">← Back</button><button class="btn-primary" onclick="next()">Next →</button></div>
+</div>
+
+<!-- STEP 5: Audience & Accessibility -->
+<div class="panel" id="panel5">
+  <div class="scard">
+    <h3>Audience and accessibility</h3>
+    <div class="field">
+      <label>How do the different audiences use this differently?</label>
+      <div class="hint">e.g. Executives scan the summary page only. Analysts drill into detail pages and export data.</div>
+      <textarea id="audienceUsage" placeholder="e.g. Primary (managers): open every Monday, scan KPI cards, filter by region. Secondary (analysts): use drill-through pages, export raw tables weekly..."></textarea>
+    </div>
+
+    <div class="divider">Accessibility requirements</div>
+    <div class="field">
+      <label>Compliance standard</label>
+      <select id="wcag">
+        <option value="">Not required</option>
+        <option value="aa">WCAG AA compliant (minimum standard)</option>
+        <option value="aaa">WCAG AAA compliant (enhanced standard)</option>
+        <option value="508">Section 508 compliant (US federal)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Visual and interaction needs <span class="tag-subtle">select all that apply</span></label>
+      <div class="chip-group">
+        <span class="chip" onclick="togA11y(this)">Colorblind-friendly palette</span>
+        <span class="chip" onclick="togA11y(this)">Never use color as only differentiator</span>
+        <span class="chip" onclick="togA11y(this)">Large text throughout</span>
+        <span class="chip" onclick="togA11y(this)">Extra-large font (low vision)</span>
+        <span class="chip" onclick="togA11y(this)">High contrast mode support</span>
+        <span class="chip" onclick="togA11y(this)">Avoid small labels on charts</span>
+        <span class="chip" onclick="togA11y(this)">Screen reader support (ARIA)</span>
+        <span class="chip" onclick="togA11y(this)">Data tables as chart alternatives</span>
+        <span class="chip" onclick="togA11y(this)">Keyboard navigation</span>
+        <span class="chip" onclick="togA11y(this)">Touch targets min 44px</span>
+        <span class="chip" onclick="togA11y(this)">Plain language labels</span>
+        <span class="chip" onclick="togA11y(this)">Reduce visual noise</span>
+        <span class="chip" onclick="togA11y(this)">Dyslexia-friendly fonts</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Other user needs or context</label>
+      <textarea id="a11yOther" placeholder="e.g. Many users on corporate Windows at 150% zoom. Field staff use tablets outdoors in bright sunlight..."></textarea>
+    </div>
+  </div>
+  <div class="nav"><button onclick="prev()">← Back</button><button class="btn-primary" onclick="next()">Next →</button></div>
+</div>
+
+<!-- STEP 6: Brand -->
+<div class="panel" id="panel6">
+  <div class="scard">
+    <h3>Brand and color</h3>
+    <div class="info-box"><p><strong>Using a brand PDF or style guide:</strong> Upload it to Claude first, then ask "Extract the brand colors, fonts, and visual guidelines from this document." Paste the result below.</p></div>
+    <div class="field">
+      <label>Brand colors</label>
+      <div class="hint">Paste hex codes, describe the palette, or paste Claude's extracted brand summary.</div>
+      <textarea id="brandColors" placeholder="e.g. Primary: #1A3C6E (navy), Accent: #F4A300 (amber), Neutral: #F5F5F5, Text: #222222. Avoid red except for alerts."></textarea>
+    </div>
+    <div class="field">
+      <label>Typography</label>
+      <textarea id="brandFonts" placeholder="e.g. Headlines: Montserrat Bold. Body: Inter Regular. Or: strong geometric sans-serif headers, neutral readable body. No serif fonts."></textarea>
+    </div>
+    <div class="field">
+      <label>Brand guidelines / additional style context</label>
+      <textarea id="brandNotes" placeholder="e.g. Bold and data-forward. Avoid soft pastels. Backgrounds stay dark navy or white. Charts use brand palette only — not default tool colors."></textarea>
+    </div>
+  </div>
+  <div class="nav"><button onclick="prev()">← Back</button><button class="btn-primary" onclick="next()">Next →</button></div>
+</div>
+
+<!-- STEP 7: Generate -->
+<div class="panel" id="panel7">
+  <div class="scard">
+    <h3>Final options</h3>
+    <div class="row2">
+      <div class="field">
+        <label>Variants to generate</label>
+        <select id="numVariants">
+          <option value="">1 (default)</option>
+          <option>2 variants</option>
+          <option>3 variants (ranked)</option>
+          <option>5 options (ranked best to worst)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Anything else the AI should know</label>
+        <textarea id="extraNotes" placeholder="e.g. Replaces an existing Excel report. Client liked a competitor's dark navy + amber dashboard. First draft is for stakeholder review."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="scard">
+    <h3>Your generated prompt</h3>
+    <div class="out-label">Prompt preview</div>
+    <div class="output-box" id="outputBox">Click "Build prompt" below to generate your prompt.</div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="buildPrompt()">Build prompt</button>
+      <button onclick="copyPrompt()" id="copyBtn">Copy to clipboard</button>
+    </div>
+    <p class="copy-note">To use in a new Claude chat: click "Copy to clipboard," open a new chat at claude.ai, and paste. Works with ChatGPT, Gemini, or any AI tool too.</p>
+  </div>
+  <div class="nav"><button onclick="prev()">← Back</button><span style="font-size:12px;color:var(--text3)">Copy and paste into any AI tool</span></div>
+</div>
+
+</div><!-- end container -->
+
+<script>
+var cur = 0, total = 8, pageCount = 0, maxPages = 5;
+
+var tplHints = {
+  wireframe: 'Low-fidelity layout sketch — focus on structure and placement, not final colors or styling.',
+  mockup: 'High-fidelity visual concept — close to final look and feel. Good for stakeholder review.',
+  prototype: 'Clickable interactive flow — shows navigation and state changes across screens.',
+  reporting_pkg: 'Full reporting package — includes a landing/overview page, navigation structure, and multiple report pages.',
+  dashboard_new: 'Full dashboard built from scratch — specify all features, data, and style preferences.',
+  data_story: 'Narrative-driven report — data unfolds as a guided story with context and insights built in.',
+  exec_pres: 'Executive presentation — summary slides or a condensed deck for leadership audiences.',
+  rebuild: 'Redesign of an existing dashboard — specify what to keep, what to fix, and the new direction.',
+  update: 'Add or change specific elements in an existing dashboard — scope clearly what changes.',
+  refine: 'Improve the visual quality of an existing design without changing structure or data.',
+  style_guide: 'Color, typography, spacing, and component standards for a consistent design system.',
+  component_lib: 'Reusable chart and UI components that can be dropped into multiple reports.',
+  template: 'A blank reusable structure with placeholder content for teams to fill in themselves.'
+};
+
+var tplLabels = {
+  wireframe: 'Wireframe (low-fidelity layout sketch)',
+  mockup: 'Dashboard mockup (high-fidelity visual concept)',
+  prototype: 'Interactive prototype',
+  reporting_pkg: 'Full reporting package (landing page + navigation + report pages)',
+  dashboard_new: 'New dashboard (full build from scratch)',
+  data_story: 'Data story / narrative report',
+  exec_pres: 'Executive presentation',
+  rebuild: 'Dashboard rebuild (redesign of existing)',
+  update: 'Dashboard update (specific element changes)',
+  refine: 'Design refinement (improve visual quality)',
+  style_guide: 'Style guide',
+  component_lib: 'Component library',
+  template: 'Reusable report template'
+};
+
+var deliverySizeLabels = {
+  desktop: 'Desktop — 1920×1080px landscape',
+  desktop_sm: 'Desktop small — 1366×768px landscape',
+  tablet_land: 'Tablet landscape — 1024×768px',
+  tablet_port: 'Tablet portrait — 768×1024px vertical',
+  mobile: 'Mobile — 390×844px portrait',
+  mobile_land: 'Mobile landscape — 844×390px',
+  embed: 'Embedded widget — 600×400px',
+  ppt_wide: 'PowerPoint widescreen — 1920×1080 / 16:9',
+  ppt_std: 'PowerPoint standard — 1024×768 / 4:3',
+  google_slides: 'Google Slides — 1920×1080 / 16:9',
+  letter_land: 'Letter landscape — 11×8.5in horizontal',
+  letter_port: 'Letter portrait — 8.5×11in vertical',
+  a4_land: 'A4 landscape — 297×210mm horizontal',
+  a4_port: 'A4 portrait — 210×297mm vertical',
+  tabloid: 'Tabloid — 17×11in landscape large format',
+  infographic_v: 'Infographic vertical — 800×2000px tall scroll',
+  infographic_h: 'Infographic horizontal — 1800×900px wide',
+  social_sq: 'Social square — 1080×1080px',
+  social_story: 'Social story — 1080×1920px vertical'
+};
+
+var pageTypeOptions = [
+  { value: '', label: '— select page type —' },
+  { value: 'Landing / overview', label: 'Landing / overview' },
+  { value: 'Executive summary', label: 'Executive summary' },
+  { value: 'Comparative analysis', label: 'Comparative analysis' },
+  { value: 'Trend analysis', label: 'Trend analysis' },
+  { value: 'Operational detail', label: 'Operational detail' },
+  { value: 'KPI scorecard', label: 'KPI scorecard' },
+  { value: 'Financial summary', label: 'Financial summary' },
+  { value: 'Geographic / map view', label: 'Geographic / map view' },
+  { value: 'Drill-through / detail', label: 'Drill-through / detail' },
+  { value: 'User behavior analytics', label: 'User behavior analytics' },
+  { value: 'Predictive / forecasting', label: 'Predictive / forecasting' },
+  { value: 'Appendix / data table', label: 'Appendix / data table' },
+  { value: 'Custom', label: 'Custom (describe in metrics field)' }
+];
+
+var layoutOptions = [
+  { value: '', label: '— use default —' },
+  { value: 'Bento grid (asymmetric card sizes)', label: 'Bento grid' },
+  { value: '3-column card grid', label: '3-column card grid' },
+  { value: '2-column card grid', label: '2-column card grid' },
+  { value: 'Single column', label: 'Single column' },
+  { value: 'Hero KPI + submetrics below', label: 'Hero KPI + submetrics' },
+  { value: 'Split panel (chart left, detail right)', label: 'Split panel' },
+  { value: 'Full-width single chart', label: 'Full-width chart' },
+  { value: 'Data table focused', label: 'Data table focused' }
+];
+
+function goStep(n) {
+  document.querySelectorAll('.panel').forEach(function(p, i) { p.classList.toggle('active', i === n); });
+  document.querySelectorAll('.step-btn').forEach(function(b, i) {
+    b.classList.remove('active', 'done');
+    if (i === n) b.classList.add('active');
+    else if (i < n) b.classList.add('done');
+  });
+  cur = n;
+  for (var i = 0; i < total; i++) {
+    var s = document.getElementById('p' + i);
+    if (s) s.style.background = i <= n ? 'var(--blue-mid)' : 'var(--border)';
+  }
+}
+
+function next() { goStep(Math.min(cur + 1, total - 1)); }
+function prev() { goStep(Math.max(cur - 1, 0)); }
+
+function onTplChange() {
+  var val = document.getElementById('tplType').value;
+  var hb = document.getElementById('tplHint'), ht = document.getElementById('tplHintTxt');
+  if (val && tplHints[val]) { ht.textContent = tplHints[val]; hb.style.display = 'block'; }
+  else hb.style.display = 'none';
+}
+
+function addPage() {
+  if (pageCount >= maxPages) return;
+  pageCount++;
+  var id = 'page' + pageCount;
+
+  var typeOpts = pageTypeOptions.map(function(o) {
+    return '<option value="' + o.value + '">' + o.label + '</option>';
+  }).join('');
+
+  var layoutOpts = layoutOptions.map(function(o) {
+    return '<option value="' + o.value + '">' + o.label + '</option>';
+  }).join('');
+
+  var html = '<div class="page-card" id="' + id + '">'
+    + '<div class="page-card-header">'
+    + '<span class="page-num">Page ' + pageCount + '</span>'
+    + '<button class="remove-btn" onclick="removePage(\'' + id + '\')">Remove</button>'
+    + '</div>'
+    + '<div class="row2" style="margin-bottom:8px">'
+    + '<div><label style="font-size:11px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px">Page type</label>'
+    + '<select id="' + id + '_type" style="font-size:12px">' + typeOpts + '</select></div>'
+    + '<div><label style="font-size:11px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px">Layout override</label>'
+    + '<select id="' + id + '_layout" style="font-size:12px">' + layoutOpts + '</select></div>'
+    + '</div>'
+    + '<label style="font-size:11px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px">Page name <span style="font-weight:400;color:var(--text3)">(optional)</span></label>'
+    + '<input type="text" id="' + id + '_name" placeholder="e.g. Sales Overview, Q3 Performance" style="font-size:12px;margin-bottom:8px">'
+    + '<label style="font-size:11px;font-weight:500;color:var(--text2);display:block;margin-bottom:4px">Key metrics and content for this page</label>'
+    + '<textarea id="' + id + '_metrics" style="font-size:12px;min-height:52px" placeholder="e.g. Total revenue, MoM change, top 5 regions by sales, quota attainment gauge..."></textarea>'
+    + '</div>';
+
+  document.getElementById('pageList').insertAdjacentHTML('beforeend', html);
+  updateAddBtn();
+}
+
+function removePage(id) {
+  var el = document.getElementById(id);
+  if (el) el.remove();
+  renumberPages();
+  updateAddBtn();
+}
+
+function renumberPages() {
+  var cards = document.querySelectorAll('#pageList .page-card');
+  cards.forEach(function(c, i) {
+    var h = c.querySelector('.page-num');
+    if (h) h.textContent = 'Page ' + (i + 1);
+  });
+  pageCount = cards.length;
+}
+
+function updateAddBtn() {
+  var btn = document.getElementById('addPageBtn');
+  if (btn) {
+    btn.disabled = pageCount >= maxPages;
+    btn.textContent = pageCount >= maxPages
+      ? 'Maximum 5 pages reached'
+      : '+ Add page (' + pageCount + '/5)';
+  }
+}
+
+function togSimple(el) { el.classList.toggle('on'); }
+function togA11y(el) { el.classList.toggle('a11y-on'); }
+function togPhase(el) {
+  if (el.classList.contains('inc')) { el.classList.remove('inc'); el.classList.add('later'); }
+  else if (el.classList.contains('later')) { el.classList.remove('later'); }
+  else { el.classList.add('inc'); }
+}
+
+function getSimpleChips(id) {
+  var r = [];
+  document.querySelectorAll('#' + id + ' .chip.on').forEach(function(e) { r.push(e.textContent.trim()); });
+  return r;
+}
+
+function getPhaseChips(ids) {
+  var inc = [], later = [];
+  ids.forEach(function(id) {
+    document.querySelectorAll('#' + id + ' .chip').forEach(function(c) {
+      if (c.classList.contains('inc')) inc.push(c.textContent.trim());
+      else if (c.classList.contains('later')) later.push(c.textContent.trim());
+    });
+  });
+  return { inc: inc, later: later };
+}
+
+function getA11yChips() {
+  var r = [];
+  document.querySelectorAll('#panel5 .chip.a11y-on').forEach(function(c) { r.push(c.textContent.trim()); });
+  return r;
+}
+
+function v(id) {
+  var e = document.getElementById(id);
+  return e && e.value ? e.value.trim() : '';
+}
+
+function buildPrompt() {
+  var lines = [];
+  var tpl = v('tplType'), tools = getSimpleChips('toolChips'), size = v('deliverySize');
+  var industry = v('industry'), endUser = v('endUser'), secAud = v('secondaryAudience');
+  var problem = v('problem'), whoHow = v('whoHow'), decisions = v('decisions');
+  var features = getPhaseChips(['structChips', 'interactChips']);
+  var placement = v('featurePlacement');
+  var style = v('visStyle'), theme = v('theme'), layout = v('layout');
+  var inspo = v('inspiration'), screenshotDesc = v('screenshotDesc'), designConstraints = v('designConstraints');
+  var audUsage = v('audienceUsage'), wcag = v('wcag'), a11y = getA11yChips(), a11yOther = v('a11yOther');
+  var brandColors = v('brandColors'), brandFonts = v('brandFonts'), brandNotes = v('brandNotes');
+  var numV = v('numVariants'), extraNotes = v('extraNotes');
+
+  if (!tpl && !problem) {
+    document.getElementById('outputBox').textContent = 'Add details in the steps above — start with Step 1 to select a deliverable type.';
+    return;
+  }
+
+  if (tpl) lines.push('Deliverable: ' + (tplLabels[tpl] || tpl) + '.');
+  if (tools.length) lines.push('Platform / tool: ' + tools.join(', ') + '.');
+  if (size) lines.push('Canvas / delivery format: ' + (deliverySizeLabels[size] || size) + '.');
+
+  var ctx = [];
+  if (industry) ctx.push('industry: ' + industry);
+  if (endUser) ctx.push('primary audience: ' + endUser);
+  if (secAud) ctx.push('secondary audience: ' + secAud);
+  if (ctx.length) lines.push('Context: ' + ctx.join('; ') + '.');
+
+  if (problem) lines.push('Problem to solve: ' + problem);
+  if (whoHow) lines.push('Who uses it and how: ' + whoHow);
+  if (decisions) lines.push('Decisions it should enable: ' + decisions);
+
+  if (features.inc.length) lines.push('Features to include: ' + features.inc.join(', ') + '.');
+  if (features.later.length) lines.push('Features to plan space for but build in a later iteration: ' + features.later.join(', ') + '.');
+  if (placement) lines.push('Feature placement and layout intent: ' + placement);
+
+  var design = [];
+  if (style) design.push('visual style: ' + style);
+  if (theme) design.push('theme: ' + theme);
+  if (layout) design.push('default layout pattern: ' + layout + ' (apply to all pages unless a per-page override is specified below)');
+  if (design.length) lines.push('Design direction: ' + design.join('; ') + '.');
+  if (inspo) lines.push('Design inspiration (reference products): ' + inspo + '. Match the spirit — do not copy directly.');
+  if (screenshotDesc) lines.push('Visual inspiration described: ' + screenshotDesc);
+  if (designConstraints) lines.push('Design constraints: ' + designConstraints);
+
+  var pages = document.querySelectorAll('#pageList .page-card');
+  if (pages.length) {
+    var pageLines = ['Report page structure (build in this order):'];
+    pages.forEach(function(card, i) {
+      var typeEl = card.querySelector('select[id$="_type"]');
+      var layoutEl = card.querySelector('select[id$="_layout"]');
+      var nameEl = card.querySelector('input[id$="_name"]');
+      var metEl = card.querySelector('textarea[id$="_metrics"]');
+      var ptype = typeEl && typeEl.value ? typeEl.value : '';
+      var playout = layoutEl && layoutEl.value ? layoutEl.value : '';
+      var pname = nameEl && nameEl.value ? nameEl.value.trim() : '';
+      var pmets = metEl && metEl.value ? metEl.value.trim() : '';
+      var label = '  Page ' + (i + 1) + ':';
+      if (ptype) label += ' ' + ptype;
+      if (pname) label += ' — "' + pname + '"';
+      if (playout) label += '\n    Layout: ' + playout;
+      if (pmets) label += '\n    Metrics / content: ' + pmets;
+      pageLines.push(label);
+    });
+    lines.push(pageLines.join('\n'));
+  }
+
+  if (audUsage) lines.push('How audiences use it differently: ' + audUsage);
+
+  var a11yLines = [];
+  if (wcag) {
+    var wl = { aa: 'WCAG AA compliant', aaa: 'WCAG AAA compliant', '508': 'Section 508 compliant' };
+    a11yLines.push(wl[wcag] || wcag);
+  }
+  a11y.forEach(function(r) { a11yLines.push(r); });
+  if (a11yOther) a11yLines.push(a11yOther);
+  if (a11yLines.length) lines.push('Accessibility requirements (apply from the start, not as an afterthought):\n' + a11yLines.map(function(l) { return '  - ' + l; }).join('\n'));
+
+  var brand = [];
+  if (brandColors) brand.push('Colors: ' + brandColors);
+  if (brandFonts) brand.push('Typography: ' + brandFonts);
+  if (brandNotes) brand.push('Brand guidelines: ' + brandNotes);
+  if (brand.length) lines.push('Brand:\n' + brand.map(function(b) { return '  ' + b; }).join('\n'));
+
+  if (numV) lines.push('Variants: ' + numV + '.');
+  if (extraNotes) lines.push('Additional context: ' + extraNotes);
+
+  document.getElementById('outputBox').textContent = lines.join('\n\n');
+}
+
+function copyPrompt() {
+  var txt = document.getElementById('outputBox').textContent;
+  var btn = document.getElementById('copyBtn');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function() {
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = 'Copy to clipboard'; }, 2000);
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy to clipboard'; }, 2000);
+  }
+}
+
+addPage();
+goStep(0);
+</script>
+</body>
+</html>
