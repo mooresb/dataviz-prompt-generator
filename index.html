@@ -194,6 +194,65 @@
     border-radius: 4px; background: var(--bg2); color: var(--text3);
     border: 0.5px solid var(--border); margin-left: 4px; font-weight: 400;
   }
+
+  /* Custom multi-select dropdown */
+  .multi-dd { position: relative; }
+  .multi-dd-trigger {
+    width: 100%; min-height: 36px; padding: 6px 32px 6px 10px;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg); cursor: pointer; font-size: 13px;
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+    position: relative; transition: border-color 0.12s;
+  }
+  .multi-dd-trigger:hover { border-color: var(--text3); }
+  .multi-dd-trigger:focus { outline: none; border-color: var(--blue-mid); box-shadow: 0 0 0 2px rgba(24,95,165,0.15); }
+  .multi-dd.open .multi-dd-trigger { border-color: var(--blue-mid); }
+  .multi-dd-placeholder { color: var(--text3); font-size: 13px; }
+  .multi-dd-placeholder.hidden { display: none; }
+  .multi-dd-tags { display: contents; }
+  .multi-dd-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--blue-bg); color: var(--blue-text);
+    font-size: 12px; padding: 3px 6px 3px 9px; border-radius: 4px;
+    line-height: 1.3;
+  }
+  .multi-dd-tag-x {
+    cursor: pointer; opacity: 0.7; font-weight: bold; font-size: 13px;
+    padding: 0 3px; border-radius: 3px;
+  }
+  .multi-dd-tag-x:hover { opacity: 1; background: rgba(0,0,0,0.08); }
+  .multi-dd-caret {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text3); font-size: 10px; pointer-events: none; transition: transform 0.15s;
+  }
+  .multi-dd.open .multi-dd-caret { transform: translateY(-50%) rotate(180deg); }
+  .multi-dd-panel {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--bg); border: 0.5px solid var(--border2);
+    border-radius: var(--radius); box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    max-height: 320px; overflow-y: auto; z-index: 20; padding: 4px;
+  }
+  .multi-dd.open .multi-dd-panel { display: block; }
+  .multi-dd-option {
+    padding: 8px 10px; font-size: 13px; cursor: pointer; border-radius: 6px;
+    display: flex; align-items: center; gap: 8px; color: var(--text);
+    user-select: none; line-height: 1.4;
+  }
+  .multi-dd-option:hover { background: var(--bg2); }
+  .multi-dd-option.selected { background: var(--blue-bg); color: var(--blue-text); }
+  .multi-dd-check {
+    width: 16px; height: 16px; border-radius: 3px; border: 0.5px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: transparent; flex-shrink: 0; background: var(--bg);
+  }
+  .multi-dd-option.selected .multi-dd-check {
+    background: var(--blue-mid); border-color: var(--blue-mid); color: #fff;
+  }
+  .multi-dd-divider {
+    font-size: 11px; font-weight: 500; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 8px 10px 4px;
+  }
 </style>
 </head>
 <body>
@@ -226,6 +285,35 @@
 <div class="panel active" id="panel0">
   <div class="scard">
     <h3>What are you building?</h3>
+
+    <div class="field">
+      <label>AI persona — who should the AI act as?</label>
+      <div class="hint">Sets the voice and expertise the AI brings to the work. Pick a preset or write your own.</div>
+      <select id="aiPersona" onchange="onPersonaChange()">
+        <option value="">— let AI decide —</option>
+        <option value="__custom">✏️ Write your own persona…</option>
+        <optgroup label="Data & BI">
+          <option>Senior data visualization designer with 10+ years of dashboard experience</option>
+          <option>BI consultant specializing in executive reporting</option>
+          <option>Analytics engineer who balances design and data accuracy</option>
+          <option>Data storyteller skilled at turning numbers into narrative</option>
+          <option>Power BI / Tableau expert with deep platform knowledge</option>
+        </optgroup>
+        <optgroup label="Design">
+          <option>Senior product designer focused on data-heavy interfaces</option>
+          <option>UX designer specializing in enterprise dashboards</option>
+          <option>Visual designer with a strong editorial / typography sensibility</option>
+          <option>Design systems lead who enforces consistency and accessibility</option>
+        </optgroup>
+        <optgroup label="Strategy & Communication">
+          <option>Management consultant presenting to a C-suite audience</option>
+          <option>Information architect organizing complex content</option>
+          <option>Technical writer focused on clarity for non-experts</option>
+        </optgroup>
+      </select>
+      <input type="text" id="aiPersonaCustom" placeholder="Describe the persona — e.g. Pragmatic finance analyst who builds CFO-ready reports" style="display:none;margin-top:6px">
+    </div>
+
     <div class="field">
       <label>Deliverable type</label>
       <select id="tplType" onchange="onTplChange()">
@@ -325,14 +413,17 @@
     <div class="row2">
       <div class="field">
         <label>Industry / domain</label>
-        <select id="industry">
+        <select id="industry" onchange="onIndustryChange()">
           <option value="">— optional —</option>
-          <optgroup label="Tech"><option>SaaS / B2B software</option><option>Developer tools</option><option>AI / ML platform</option><option>Cybersecurity</option></optgroup>
-          <optgroup label="Finance"><option>Fintech / payments</option><option>Banking / insurance</option><option>Personal finance</option><option>Investment / trading</option></optgroup>
-          <optgroup label="Healthcare"><option>Medical / clinical</option><option>Mental health</option><option>Wellness / fitness</option><option>Pharmacy / biotech</option></optgroup>
-          <optgroup label="Commerce"><option>E-commerce / retail</option><option>Marketplace</option><option>Food & beverage</option><option>Luxury / fashion</option></optgroup>
-          <optgroup label="Other"><option>Education / EdTech</option><option>Government / public sector</option><option>Nonprofit</option><option>Media / publishing</option><option>Real estate</option><option>HR / workforce</option><option>Supply chain / logistics</option><option>Energy / sustainability</option></optgroup>
+          <option value="__custom">✏️ Write your own industry…</option>
+          <optgroup label="Tech"><option>SaaS / B2B software</option><option>Developer tools</option><option>AI / ML platform</option><option>Cybersecurity</option><option>Telecom / networking</option><option>Hardware / IoT</option></optgroup>
+          <optgroup label="Finance"><option>Fintech / payments</option><option>Banking / insurance</option><option>Personal finance</option><option>Investment / trading</option><option>Accounting / audit</option></optgroup>
+          <optgroup label="Healthcare"><option>Medical / clinical</option><option>Mental health</option><option>Wellness / fitness</option><option>Pharmacy / biotech</option><option>Health insurance / payer</option><option>Public health</option></optgroup>
+          <optgroup label="Manufacturing"><option>Discrete manufacturing</option><option>Process manufacturing</option><option>Automotive / aerospace</option><option>Industrial equipment / machinery</option><option>Electronics / semiconductor</option><option>Consumer goods / CPG</option><option>Chemicals / materials</option><option>Food & beverage production</option><option>Plant operations / OEE</option><option>Quality / Six Sigma reporting</option></optgroup>
+          <optgroup label="Commerce"><option>E-commerce / retail</option><option>Marketplace</option><option>Food & beverage</option><option>Luxury / fashion</option><option>Hospitality / travel</option></optgroup>
+          <optgroup label="Other"><option>Education / EdTech</option><option>Government / public sector</option><option>Nonprofit</option><option>Media / publishing</option><option>Real estate</option><option>HR / workforce</option><option>Supply chain / logistics</option><option>Energy / sustainability</option><option>Construction / AEC</option><option>Agriculture / agtech</option><option>Legal / professional services</option></optgroup>
         </select>
+        <input type="text" id="industryCustom" placeholder="Describe your industry or domain" style="display:none;margin-top:6px">
       </div>
       <div class="field">
         <label>Primary end user</label>
@@ -430,36 +521,42 @@
     <h3>Design direction</h3>
     <div class="row2">
       <div class="field">
-        <label>Visual style
-          <span class="tooltip-wrap">
-            <button class="style-ref" tabindex="0">[what's this?]</button>
-            <div class="tooltip-box"><strong style="font-size:12px;color:#1a1a1a">Style reference guide</strong><br><br>Placeholder — your team's style reference doc will be linked here. Choose the name that feels closest to your vision.</div>
-          </span>
-        </label>
-        <select id="visStyle">
-          <option value="">— let AI decide —</option>
-          <optgroup label="Clean / Professional">
-            <option>Minimalism / Swiss design</option><option>Flat design</option>
-            <option>Swiss Modernism 2.0</option><option>Exaggerated minimalism</option>
-          </optgroup>
-          <optgroup label="Modern / Trendy">
-            <option>Glassmorphism</option><option>Claymorphism</option>
-            <option>Neumorphism (soft UI)</option><option>Neobrutalism</option>
-            <option>Bento Box Grid</option><option>Aurora UI</option>
-          </optgroup>
-          <optgroup label="Bold / Expressive">
-            <option>Brutalism</option><option>New Maximalism</option><option>Memphis Design</option>
-          </optgroup>
-          <optgroup label="Dark / Techy">
-            <option>Dark Mode OLED</option><option>Cyberpunk / HUD</option><option>Retro-Futurism</option>
-          </optgroup>
-          <optgroup label="Editorial">
-            <option>Editorial Grid / Magazine</option><option>Data-dense analytical</option>
-          </optgroup>
-          <optgroup label="Organic">
-            <option>Organic / Biophilic</option><option>Soft / pastel wellness</option>
-          </optgroup>
-        </select>
+        <label>Visual style <span class="tag-subtle">click to open, pick one or more</span></label>
+        <div class="hint">Pick the mood(s) that fit. Select multiple to have the AI produce a variant in each style — set the number of versions in Step 8.</div>
+
+        <div class="multi-dd" id="visStyleDD">
+          <div class="multi-dd-trigger" id="visStyleTrigger" onclick="toggleStyleDD(event)" tabindex="0">
+            <span class="multi-dd-placeholder" id="visStylePlaceholder">— select style(s) —</span>
+            <span class="multi-dd-tags" id="visStyleTags"></span>
+            <span class="multi-dd-caret">▾</span>
+          </div>
+          <div class="multi-dd-panel" id="visStylePanel">
+            <div class="multi-dd-option" data-value="__custom" onclick="toggleStyleOpt(this, event)">
+              <span class="multi-dd-check">✓</span>
+              <span>✏️ Write your own style (use the box below)</span>
+            </div>
+            <div class="multi-dd-divider">Mood-board styles</div>
+            <div class="multi-dd-option" data-value="Minimalist & Clean — white space, clean sans-serif typography, muted palette, low cognitive load" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Minimalist & Clean</strong> — airy, calm, easy to read</span></div>
+            <div class="multi-dd-option" data-value="Dark Mode & Technical — deep backgrounds with high-contrast neon-toned data points, suited to financial, security, and developer tools" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Dark Mode & Technical</strong> — sleek, high-contrast, tech feel</span></div>
+            <div class="multi-dd-option" data-value="Vibrant & Informative — bold contrasting colors to differentiate data, attention-grabbing for high-level dashboards" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Vibrant & Informative</strong> — bold colors, energetic, grabs attention</span></div>
+            <div class="multi-dd-option" data-value="Soft & Analytical — pastel palette, soft gradients, rounded charts, suited to wellness, education, and empathetic user-friendly tools" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Soft & Analytical</strong> — pastel, gentle, friendly</span></div>
+            <div class="multi-dd-option" data-value="Corporate & Professional — restrained palette, structured grid, formal typography, trustworthy and stakeholder-ready" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Corporate & Professional</strong> — polished, restrained, trustworthy</span></div>
+            <div class="multi-dd-option" data-value="Consulting Deck — McKinsey / BCG style structured slide aesthetic with strong hierarchy, clean grid, neutral palette with one accent" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Consulting Deck</strong> — McKinsey/BCG slide style</span></div>
+            <div class="multi-dd-option" data-value="Editorial / Magazine — strong typography hierarchy, serif and sans mixed, generous spacing, feels like a published article" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Editorial / Magazine</strong> — typographic, narrative, premium</span></div>
+            <div class="multi-dd-option" data-value="Newsroom / Journalistic — Bloomberg/FT-style data-forward layout, dense but legible, neutral backgrounds with accent color" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Newsroom / Journalistic</strong> — Bloomberg/FT style</span></div>
+            <div class="multi-dd-option" data-value="Data-dense Analytical — high information density, tight spacing, small multiples, optimized for analysts and power users" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Data-dense Analytical</strong> — info-rich, for analysts</span></div>
+            <div class="multi-dd-option" data-value="Bento Grid — asymmetric card sizes in a tile pattern, popular on modern product landing pages and Apple keynotes" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Bento Grid</strong> — modern asymmetric tile layout</span></div>
+            <div class="multi-dd-option" data-value="Glassmorphism — frosted translucent panels, soft blur, subtle gradients behind" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Glassmorphism</strong> — frosted glass, layered, modern</span></div>
+            <div class="multi-dd-option" data-value="Neobrutalism — flat blocks of color, heavy borders, deliberate rawness, bold but playful" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Neobrutalism</strong> — raw, bold, deliberately blocky</span></div>
+            <div class="multi-dd-option" data-value="Retro-Futurism — 80s/90s computer aesthetic, gridlines, gradients, monospace fonts, nostalgic tech feel" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Retro-Futurism</strong> — 80s/90s computing nostalgia</span></div>
+            <div class="multi-dd-option" data-value="Hand-drawn / Sketch — sketched lines, casual annotation feel, low-fidelity charm" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Hand-drawn / Sketch</strong> — casual, sketched, approachable</span></div>
+            <div class="multi-dd-option" data-value="Infographic-led — large illustrative numbers, icons, callouts, designed for one-page storytelling" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Infographic-led</strong> — illustrated, icon-heavy, one-page story</span></div>
+            <div class="multi-dd-option" data-value="Organic & Biophilic — natural shapes, earthy palette, soft curves, calming sustainable feel" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Organic & Biophilic</strong> — natural, earthy, calming</span></div>
+            <div class="multi-dd-option" data-value="Government / Institutional — accessible, plain, neutral colors, clear hierarchy, suited to public-sector reporting" onclick="toggleStyleOpt(this, event)"><span class="multi-dd-check">✓</span><span><strong>Government / Institutional</strong> — accessible, plain, public-sector</span></div>
+          </div>
+        </div>
+
+        <input type="text" id="visStyleCustom" placeholder="✏️ Add your own style (optional) — e.g. Bloomberg Terminal-inspired, Pinterest mood board I'll paste below" style="margin-top:8px">
       </div>
       <div class="field">
         <label>Theme</label>
@@ -738,6 +835,83 @@ function onTplChange() {
   else hb.style.display = 'none';
 }
 
+function onPersonaChange() {
+  var sel = document.getElementById('aiPersona');
+  var inp = document.getElementById('aiPersonaCustom');
+  if (sel.value === '__custom') {
+    inp.style.display = 'block';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+}
+
+function onIndustryChange() {
+  var sel = document.getElementById('industry');
+  var inp = document.getElementById('industryCustom');
+  if (sel.value === '__custom') {
+    inp.style.display = 'block';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+}
+
+// Custom multi-select dropdown for Visual style
+function toggleStyleDD(e) {
+  if (e) e.stopPropagation();
+  var dd = document.getElementById('visStyleDD');
+  dd.classList.toggle('open');
+}
+
+function toggleStyleOpt(el, e) {
+  if (e) e.stopPropagation();
+  el.classList.toggle('selected');
+  renderStyleTags();
+}
+
+function renderStyleTags() {
+  var dd = document.getElementById('visStyleDD');
+  var tagsBox = document.getElementById('visStyleTags');
+  var placeholder = document.getElementById('visStylePlaceholder');
+  var selected = dd.querySelectorAll('.multi-dd-option.selected');
+  tagsBox.innerHTML = '';
+  if (selected.length === 0) {
+    placeholder.classList.remove('hidden');
+    return;
+  }
+  placeholder.classList.add('hidden');
+  Array.prototype.forEach.call(selected, function(opt) {
+    var label = opt.querySelector('span:last-child').textContent;
+    // shorten the label for the tag — take the bold part if present
+    var short = opt.querySelector('strong');
+    var displayText = short ? short.textContent : label.split(' — ')[0];
+    var tag = document.createElement('span');
+    tag.className = 'multi-dd-tag';
+    tag.innerHTML = '<span>' + displayText + '</span>';
+    var x = document.createElement('span');
+    x.className = 'multi-dd-tag-x';
+    x.textContent = '×';
+    x.onclick = function(ev) {
+      ev.stopPropagation();
+      opt.classList.remove('selected');
+      renderStyleTags();
+    };
+    tag.appendChild(x);
+    tagsBox.appendChild(tag);
+  });
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  var dd = document.getElementById('visStyleDD');
+  if (dd && dd.classList.contains('open') && !dd.contains(e.target)) {
+    dd.classList.remove('open');
+  }
+});
+
 function addPage() {
   if (pageCount >= maxPages) return;
   pageCount++;
@@ -836,12 +1010,35 @@ function v(id) {
 
 function buildPrompt() {
   var lines = [];
+
+  // AI persona
+  var personaSel = v('aiPersona');
+  var personaCustom = v('aiPersonaCustom');
+  var persona = personaSel === '__custom' ? personaCustom : personaSel;
+
   var tpl = v('tplType'), tools = getSimpleChips('toolChips'), size = v('deliverySize');
-  var industry = v('industry'), endUser = v('endUser'), secAud = v('secondaryAudience');
+
+  // Industry — handle custom write-in
+  var industrySel = v('industry');
+  var industryCustom = v('industryCustom');
+  var industry = industrySel === '__custom' ? industryCustom : industrySel;
+
+  var endUser = v('endUser'), secAud = v('secondaryAudience');
   var problem = v('problem'), whoHow = v('whoHow'), decisions = v('decisions');
   var features = getPhaseChips(['structChips', 'interactChips']);
   var placement = v('featurePlacement');
-  var style = v('visStyle'), theme = v('theme'), layout = v('layout');
+
+  // Visual style — custom multi-select dropdown + custom write-in
+  var styles = [];
+  var styleOpts = document.querySelectorAll('#visStylePanel .multi-dd-option.selected');
+  Array.prototype.forEach.call(styleOpts, function(o) {
+    var val = o.getAttribute('data-value');
+    if (val && val !== '__custom') styles.push(val);
+  });
+  var styleCustom = v('visStyleCustom');
+  if (styleCustom) styles.push(styleCustom);
+
+  var theme = v('theme'), layout = v('layout');
   var inspo = v('inspiration'), screenshotDesc = v('screenshotDesc'), designConstraints = v('designConstraints');
   var audUsage = v('audienceUsage'), wcag = v('wcag'), a11y = getA11yChips(), a11yOther = v('a11yOther');
   var brandColors = v('brandColors'), brandFonts = v('brandFonts'), brandNotes = v('brandNotes');
@@ -852,6 +1049,7 @@ function buildPrompt() {
     return;
   }
 
+  if (persona) lines.push('Act as: ' + persona + '.');
   if (tpl) lines.push('Deliverable: ' + (tplLabels[tpl] || tpl) + '.');
   if (tools.length) lines.push('Platform / tool: ' + tools.join(', ') + '.');
   if (size) lines.push('Canvas / delivery format: ' + (deliverySizeLabels[size] || size) + '.');
@@ -871,7 +1069,11 @@ function buildPrompt() {
   if (placement) lines.push('Feature placement and layout intent: ' + placement);
 
   var design = [];
-  if (style) design.push('visual style: ' + style);
+  if (styles.length === 1) {
+    design.push('visual style: ' + styles[0]);
+  } else if (styles.length > 1) {
+    design.push('visual styles to explore (produce a variant for each, or blend where it makes sense — see Variants below): ' + styles.join('; '));
+  }
   if (theme) design.push('theme: ' + theme);
   if (layout) design.push('default layout pattern: ' + layout + ' (apply to all pages unless a per-page override is specified below)');
   if (design.length) lines.push('Design direction: ' + design.join('; ') + '.');
